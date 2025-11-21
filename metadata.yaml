@@ -1,5 +1,6 @@
 name: astrbot_plugin_zspms_voice
 desc: 这是一个用于获取和播放战双帕弥什所有角色语音的 AstrBot 插件。
+help: /zspms #播放随机角色的皮肤语音。
 version: v1.0.0
 author: yijin840
 repo: https://github.com/yijin840/astrbot_plugin_zspms_voice

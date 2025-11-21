@@ -54,7 +54,7 @@ class ZSPMSPlugin(Star):
         yield event.plain_result(f"来！{character} 的「{title}」~")
         yield event.chain_result([Record.fromFileSystem(str(save_path))])
 
-    @filter.command("zspms", alias=["战双帕弥什随机语音"])
+    @filter.command("zspms", alias=["战双语音", "zspms语音"])
     async def random_play(self, event: AstrMessageEvent):
 
         if not self.voice_list:
