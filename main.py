@@ -52,7 +52,9 @@ class ZSPMSPlugin(Star):
                 with open(str(voices_json_path), "r", encoding="utf-8") as f:
                     self.voice_list = json.load(f)
                 logger.info(f"[战双语音] ✅ 成功加载 {len(self.voice_list)} 个角色")
-                logger.info(f"[战双语音] 角色列表: {[c.get('title', '未知') for c in self.voice_list[:5]]}")
+                # 仅打印前5个角色的标题以避免日志过长
+                titles = [c.get("title", "未知") for c in self.voice_list[:5]]
+                logger.info(f"[战双语音] 部分角色列表: {titles}")
             else:
                 logger.error(f"[战双语音] ❌ voices.json文件不存在")
                 logger.error(f"[战双语音] 请确保文件在: {voices_json_path}")
@@ -86,17 +88,41 @@ class ZSPMSPlugin(Star):
             return
 
         if not save_path.exists():
-            # URL编码处理
-            file_name_encoded = file_name.replace(' ', '%20')
-            url = f"https://wiki.biligame.com/zspms/Special:Redirect/file/{file_name_encoded}"
+            # --- START: 关键的路径修正逻辑（从您原来的代码中恢复） ---
+            # 战双维基的 Special:Redirect/file 链接要求去掉文件名中的第一个“·”及其左边的内容。
+            # 示例: "文件:蒲牢·华钟 中 问候.mp3" 必须变成 "文件:华钟 中 问候.mp3" 才能下载。
+
+            download_path = file_name
+            try:
+                # 1. 分割文件名前缀（"文件:"）和文件名主体
+                prefix, name_body = file_name.split(":", 1)
+
+                # 2. 找到第一个 "·" 并只保留右侧内容
+                if "·" in name_body:
+                    _, right_part = name_body.split("·", 1)
+                    # 重新组合路径
+                    download_path = f"{prefix}:{right_part.strip()}"
+
+            except Exception as e:
+                # 如果分割失败，例如文件名中没有 ':', 仍然使用原始文件名
+                logger.warning(f"[战双语音] 修正文件名失败，使用原始文件名: {e}")
+
+            # 构造 URL
+            download_path_encoded = download_path.replace(' ', '%20')
+            url = f"https://wiki.biligame.com/zspms/Special:Redirect/file/{download_path_encoded}"
+            logger.info(f"[战双语音] 修正后的下载路径: {download_path}")
             logger.info(f"[战双语音] 下载URL: {url}")
+            # --- END: 关键的路径修正逻辑 ---
 
             yield event.plain_result(f"正在为你下载 {character} 的「{title}」...")
 
-            async with aiohttp.ClientSession() as session:
+            async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=30)) as session:
                 try:
                     logger.info(f"[战双语音] 开始HTTP请求...")
-                    async with session.get(url, timeout=aiohttp.ClientTimeout(total=30)) as response:
+                    # 可以在这里添加您的默认 Headers，如果您需要的话：
+                    # headers = {"User-Agent": "YourPlugin/1.0"}
+                    # async with session.get(url, headers=headers) as response:
+                    async with session.get(url) as response:
                         logger.info(f"[战双语音] HTTP状态码: {response.status}")
                         logger.info(f"[战双语音] 响应头: {dict(response.headers)}")
 
@@ -134,6 +160,7 @@ class ZSPMSPlugin(Star):
         yield event.plain_result(f"来！{character} 的「{title}」~")
 
         try:
+            # 确保 Record 类是可用的，并且路径是正确的字符串
             yield event.chain_result([Record.fromFileSystem(str(save_path))])
             logger.info(f"[战双语音] ✅ 语音发送成功")
         except Exception as send_error:
@@ -157,14 +184,25 @@ class ZSPMSPlugin(Star):
 
         voices = char.get("voices", [])
         if not voices:
-            logger.warning(f"[战双语音] 角色 {character} 没有语音列表")
-            yield event.plain_result(f"{character} 暂时没语音哦~")
+            logger.warning(f"[战双语音] 角色 {character} 没有语音列表，跳过")
+            yield event.plain_result(f"{character} 暂时没语音哦~ (请检查 voices.json)")
             return
 
         file_name = random.choice(voices)
         logger.info(f"[战双语音] 随机选中文件: {file_name}")
 
-        title = file_name.split(" ", 2)[-1].replace(".mp3", "").strip()
+        # 尝试解析标题，假设格式是 "文件: [角色名] [语言] [标题].mp3" 或 "文件:[角色名·构造体名] [语言] [标题].mp3"
+        # 简单地取空格后的第三个词开始作为标题
+        try:
+            # 找到第一个空格后的内容，然后找到第二个空格后的内容，作为标题的起始
+            parts = file_name.split(" ", 2)
+            if len(parts) > 2:
+                title = parts[-1].replace(".mp3", "").strip()
+            else:
+                title = file_name.replace(".mp3", "").strip()
+        except Exception:
+            title = file_name.replace(".mp3", "").strip()
+
         logger.info(f"[战双语音] 解析标题: {title}")
 
         async for result in self.download_and_send(event, file_name, character, title):
