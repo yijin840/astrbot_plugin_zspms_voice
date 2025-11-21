@@ -22,18 +22,16 @@ class ZSPMSPlugin(Star):
         self.voices_dir.mkdir(parents=True, exist_ok=True)
 
         plugin_dir = Path(__file__).parent.resolve()
-        json_path = plugin_dir / "voices.json"
-        json_path = Path(json_path)
+        voices_path = plugin_dir / "voices.json"
+        voices_path = Path(voices_path)
 
-        print("json_path:", json_path)
-        print("json_path type:", type(json_path))
-        print(json_path)
-        print(type(json_path))
-        if not json_path.exists():
+        print("json_path:", voices_path)
+        print("json_path type:", type(voices_path))
+        if not voices_path.exists():
             logger.error("未找到 voices.json！请放在插件目录下")
             self.voice_list = []
         else:
-            self.voice_list = json.load(open(json_path, "r", encoding="utf-8"))
+            self.voice_list = json.load(open(voices_path, "r", encoding="utf-8"))
             logger.info(f"加载了 {len(self.voice_list)} 个角色语音列表，准备开冲！")
 
     async def download_and_send(self, event, file_name, character, title):
