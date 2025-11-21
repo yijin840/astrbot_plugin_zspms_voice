@@ -18,20 +18,32 @@ class ZSPMSPlugin(Star):
     def __init__(self, context, config):
         super().__init__(context)
 
-        logger.info("[战双语音] 开始初始化...")
+        logger.info("[战双语音] ========== 开始初始化 ==========")
 
         data_dir_raw = StarTools.get_data_dir("astrbot_plugin_zspms_voice")
-        logger.info(f"[战双语音] 原始数据目录类型: {type(data_dir_raw)}, 值: {data_dir_raw}")
+        logger.info(f"[战双语音] 原始数据目录类型: {type(data_dir_raw)}")
+        logger.info(f"[战双语音] 原始数据目录值: {data_dir_raw}")
 
         self.data_dir = Path(str(data_dir_raw))
+        logger.info(f"[战双语音] 转换后数据目录: {self.data_dir}")
+        logger.info(f"[战双语音] 数据目录是否存在: {self.data_dir.exists()}")
+
         self.voices_dir = self.data_dir / "voices"
-        self.voices_dir.mkdir(parents=True, exist_ok=True)
+        logger.info(f"[战双语音] 语音缓存目录: {self.voices_dir}")
+
+        try:
+            self.voices_dir.mkdir(parents=True, exist_ok=True)
+            logger.info(f"[战双语音] ✅ 语音缓存目录创建成功")
+        except Exception as e:
+            logger.error(f"[战双语音] ❌ 创建语音缓存目录失败: {e}")
 
         plugin_root = self.data_dir.parent.parent / "plugins" / "astrbot_plugin_zspms_voice"
         logger.info(f"[战双语音] 插件根目录: {plugin_root}")
+        logger.info(f"[战双语音] 插件根目录是否存在: {plugin_root.exists()}")
 
         voices_json_path = plugin_root / "voices.json"
-        logger.info(f"[战双语音] voices.json路径: {voices_json_path}")
+        logger.info(f"[战双语音] voices.json完整路径: {voices_json_path}")
+        logger.info(f"[战双语音] voices.json是否存在: {voices_json_path.exists()}")
 
         self.voice_list = []
 
@@ -39,57 +51,121 @@ class ZSPMSPlugin(Star):
             if voices_json_path.exists():
                 with open(str(voices_json_path), "r", encoding="utf-8") as f:
                     self.voice_list = json.load(f)
-                logger.info(f"[战双语音] 成功加载 {len(self.voice_list)} 个角色")
+                logger.info(f"[战双语音] ✅ 成功加载 {len(self.voice_list)} 个角色")
+                logger.info(f"[战双语音] 角色列表: {[c.get('title', '未知') for c in self.voice_list[:5]]}")
             else:
-                logger.error(f"[战双语音] 文件不存在: {voices_json_path}")
+                logger.error(f"[战双语音] ❌ voices.json文件不存在")
+                logger.error(f"[战双语音] 请确保文件在: {voices_json_path}")
         except Exception as e:
-            logger.error(f"[战双语音] 读取失败: {e}", exc_info=True)
+            logger.error(f"[战双语音] ❌ 读取voices.json失败: {e}", exc_info=True)
+
+        logger.info("[战双语音] ========== 初始化完成 ==========")
 
     async def download_and_send(self, event, file_name, character, title):
+        logger.info(f"[战双语音] ---------- 开始处理语音 ----------")
+        logger.info(f"[战双语音] 角色: {character}")
+        logger.info(f"[战双语音] 标题: {title}")
+        logger.info(f"[战双语音] 原始文件名: {file_name}")
+
         safe_character = re.sub(r'[\\/:*?"<>|]', '_', character)
         safe_title = re.sub(r'[\\/:*?"<>|]', '_', title)
+        logger.info(f"[战双语音] 安全角色名: {safe_character}")
+        logger.info(f"[战双语音] 安全标题: {safe_title}")
 
         save_path = self.voices_dir / safe_character / f"{safe_title}.mp3"
-        save_path.parent.mkdir(parents=True, exist_ok=True)
+        logger.info(f"[战双语音] 保存路径: {save_path}")
+        logger.info(f"[战双语音] 父目录: {save_path.parent}")
+        logger.info(f"[战双语音] 文件是否已存在: {save_path.exists()}")
+
+        try:
+            save_path.parent.mkdir(parents=True, exist_ok=True)
+            logger.info(f"[战双语音] ✅ 父目录创建成功")
+        except Exception as e:
+            logger.error(f"[战双语音] ❌ 创建父目录失败: {e}")
+            yield event.plain_result(f"创建目录失败: {e}")
+            return
 
         if not save_path.exists():
+            # URL编码处理
             file_name_encoded = file_name.replace(' ', '%20')
             url = f"https://wiki.biligame.com/zspms/Special:Redirect/file/{file_name_encoded}"
+            logger.info(f"[战双语音] 下载URL: {url}")
+
             yield event.plain_result(f"正在为你下载 {character} 的「{title}」...")
 
             async with aiohttp.ClientSession() as session:
                 try:
+                    logger.info(f"[战双语音] 开始HTTP请求...")
                     async with session.get(url, timeout=aiohttp.ClientTimeout(total=30)) as response:
+                        logger.info(f"[战双语音] HTTP状态码: {response.status}")
+                        logger.info(f"[战双语音] 响应头: {dict(response.headers)}")
+
                         if response.status == 200:
                             content = await response.read()
-                            save_path.write_bytes(content)
-                            logger.info(f"[战双语音] 下载成功: {save_path}")
+                            content_length = len(content)
+                            logger.info(
+                                f"[战双语音] 下载内容大小: {content_length} 字节 ({content_length / 1024:.2f} KB)")
+
+                            try:
+                                save_path.write_bytes(content)
+                                logger.info(f"[战双语音] ✅ 文件写入成功: {save_path}")
+                                logger.info(f"[战双语音] 文件大小验证: {save_path.stat().st_size} 字节")
+                            except Exception as write_error:
+                                logger.error(f"[战双语音] ❌ 文件写入失败: {write_error}")
+                                yield event.plain_result(f"保存文件失败: {write_error}")
+                                return
                         else:
+                            logger.error(f"[战双语音] ❌ HTTP请求失败，状态码: {response.status}")
                             yield event.plain_result(f"下载失败(HTTP {response.status})，下次再试吧~")
                             return
-                except Exception as e:
-                    logger.error(f"[战双语音] 下载异常: {e}")
-                    yield event.plain_result("下载出错了，稍后再试哦~")
-                    return
 
+                except aiohttp.ClientError as client_error:
+                    logger.error(f"[战双语音] ❌ 网络请求异常(ClientError): {client_error}")
+                    yield event.plain_result(f"网络请求失败: {client_error}")
+                    return
+                except Exception as e:
+                    logger.error(f"[战双语音] ❌ 下载异常: {e}", exc_info=True)
+                    yield event.plain_result(f"下载出错: {e}")
+                    return
+        else:
+            logger.info(f"[战双语音] 文件已存在，跳过下载")
+
+        logger.info(f"[战双语音] 准备发送语音文件: {save_path}")
         yield event.plain_result(f"来！{character} 的「{title}」~")
-        yield event.chain_result([Record.fromFileSystem(str(save_path))])
+
+        try:
+            yield event.chain_result([Record.fromFileSystem(str(save_path))])
+            logger.info(f"[战双语音] ✅ 语音发送成功")
+        except Exception as send_error:
+            logger.error(f"[战双语音] ❌ 语音发送失败: {send_error}")
+            yield event.plain_result(f"发送语音失败: {send_error}")
+
+        logger.info(f"[战双语音] ---------- 处理完成 ----------")
 
     @filter.command("zspms", alias=["战双语音", "zspms语音"])
     async def random_play(self, event: AstrMessageEvent):
+        logger.info(f"[战双语音] 收到命令，触发随机播放")
+
         if not self.voice_list:
+            logger.warning(f"[战双语音] 语音列表为空")
             yield event.plain_result("voices.json 没找到或加载失败！请检查插件目录")
             return
 
         char = random.choice(self.voice_list)
         character = char.get("title", "未知角色")
+        logger.info(f"[战双语音] 随机选中角色: {character}")
 
-        if not char.get("voices"):
+        voices = char.get("voices", [])
+        if not voices:
+            logger.warning(f"[战双语音] 角色 {character} 没有语音列表")
             yield event.plain_result(f"{character} 暂时没语音哦~")
             return
 
-        file_name = random.choice(char["voices"])
+        file_name = random.choice(voices)
+        logger.info(f"[战双语音] 随机选中文件: {file_name}")
+
         title = file_name.split(" ", 2)[-1].replace(".mp3", "").strip()
+        logger.info(f"[战双语音] 解析标题: {title}")
 
         async for result in self.download_and_send(event, file_name, character, title):
             yield result
