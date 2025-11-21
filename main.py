@@ -3,13 +3,14 @@
 
 import json
 import random
+import re
 from pathlib import Path
 
 import aiohttp
 from astrbot.api import logger
 from astrbot.api.all import *
 from astrbot.api.event import filter, AstrMessageEvent
-from astrbot.api.star import StarTools
+from astrbot.api.star import StarTools, Star
 
 
 @register("astrbot_plugin_zspms_voice", "yijin840", "战双帕弥什随机语音（一键即播）", "1.0.0")
@@ -17,25 +18,37 @@ class ZSPMSPlugin(Star):
     def __init__(self, context, config):
         super().__init__(context)
 
+        # 插件数据目录
         self.data_dir = StarTools.get_data_dir("astrbot_plugin_zspms_voice")
         self.voices_dir = self.data_dir / "voices"
         self.voices_dir.mkdir(parents=True, exist_ok=True)
 
+        # voices.json 路径（仅局部变量，防止被框架覆盖）
         plugin_dir = Path(__file__).parent.resolve()
         voices_path = plugin_dir / "voices.json"
-        voices_path = Path(voices_path)
+        voices_path = Path(voices_path)  # 强制 Path
 
         print("json_path:", voices_path)
         print("json_path type:", type(voices_path))
+
         if not voices_path.exists():
             logger.error("未找到 voices.json！请放在插件目录下")
             self.voice_list = []
         else:
-            self.voice_list = json.load(open(voices_path, "r", encoding="utf-8"))
-            logger.info(f"加载了 {len(self.voice_list)} 个角色语音列表，准备开冲！")
+            try:
+                with voices_path.open("r", encoding="utf-8") as f:
+                    self.voice_list = json.load(f)
+                logger.info(f"加载了 {len(self.voice_list)} 个角色语音列表，准备开冲！")
+            except Exception as e:
+                logger.exception("读取 voices.json 失败: %s", e)
+                self.voice_list = []
 
     async def download_and_send(self, event, file_name, character, title):
-        save_path = self.voices_dir / character / f"{title}.mp3"
+        # 处理非法文件名字符
+        safe_character = re.sub(r'[\\/:*?"<>|]', '_', character)
+        safe_title = re.sub(r'[\\/:*?"<>|]', '_', title)
+
+        save_path = self.voices_dir / safe_character / f"{safe_title}.mp3"
         save_path.parent.mkdir(parents=True, exist_ok=True)
 
         if not save_path.exists():
@@ -59,18 +72,19 @@ class ZSPMSPlugin(Star):
 
     @filter.command("zspms", alias=["战双语音", "zspms语音"])
     async def random_play(self, event: AstrMessageEvent):
-
         if not self.voice_list:
-            yield event.plain_result("voices.json 没找到！请检查插件目录")
+            yield event.plain_result("voices.json 没找到或加载失败！请检查插件目录")
             return
 
         char = random.choice(self.voice_list)
-        character = char["title"]
-        if not char["voices"]:
+        character = char.get("title", "未知角色")
+
+        if not char.get("voices"):
             yield event.plain_result(f"{character} 暂时没语音哦~")
             return
 
         file_name = random.choice(char["voices"])
-        title = file_name.split(" ", 2)[-1].replace(".mp3", "")
+        # 文件名最后部分去掉 .mp3 并去首尾空格
+        title = file_name.split(" ", 2)[-1].replace(".mp3", "").strip()
 
         await self.download_and_send(event, file_name, character, title)
