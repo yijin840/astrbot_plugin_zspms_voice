@@ -116,7 +116,7 @@ class ZSPMSPlugin(Star):
             filename = f"文件:{character} {lang_text} {title}.mp3"
 
 
-        prefix, name = character.split(":", 1)
+        prefix, name = filename.split(":", 1)
         # 只处理第一个“·”左右的内容
         left, right = name.split("·", 1)
         # 拼回结果
