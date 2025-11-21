@@ -1,4 +1,4 @@
-# astrbot_plugin_zspms  
+# astrbot_plugin_zspms_voice  
 战双帕弥什全构造体语音插件 for AstrBot  
 
 [![版本](https://img.shields.io/badge/版本-v1.0.0-blue)](.) [![AstrBot](https://img.shields.io/badge/AstrBot-插件-green)](https://github.com/Soulter/AstrBot) [![战双帕弥什](https://img.shields.io/badge/游戏-战双帕弥什-ff69b4)](https://grayravens.com)
@@ -22,7 +22,7 @@
 
 ## 安装方法
 
-1. 将整个 `astrbot_plugin_zspms` 文件夹放入 AstrBot 的 `plugins/` 目录  
+1. 将整个 `astrbot_plugin_zspms_voice` 文件夹放入 AstrBot 的 `plugins/` 目录  
 2. 重启 AstrBot 或发送 `/reload`  
 3. 第一次使用会自动生成配置和 `zspms_data/` 文件夹
 
