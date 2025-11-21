@@ -69,11 +69,11 @@ class ZSPMSPlugin(Star):
         self.auto_download = self.config.get("auto_download", True)
         self.auto_download_coating = self.config.get("auto_download_coating", True)
 
-        self.language_list = ["cn", "jp", "en", "yue"]
+        self.language_list = ["cn"]
         self.default_language_rank = self.config.get("default_language_rank", "1234")
         self.auto_download_language = self.config.get("auto_download_language", "12")
 
-        self.lang_name = {"cn": "中文", "jp": "日语", "en": "英语", "yue": "粤语"}
+        self.lang_name = {"cn": "中文"}
 
         # 自动生成配置模板
         schema = {
@@ -109,7 +109,7 @@ class ZSPMSPlugin(Star):
 
     async def download_single_voice(self, character: str, title: str, lang: str) -> bool:
         # 正确的文件名格式：文件:角色名 [语言] 标题.mp3
-        lang_text = {"cn": "中", "jp": "日", "en": "英", "yue": "粤"}[lang]
+        lang_text = {"cn": "中"}[lang]
         if title == "涂装专属语音":
             filename = f"文件:{character} 涂装语音.mp3"  # 涂装固定这样
         else:
