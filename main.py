@@ -4,7 +4,6 @@
 import json
 import random
 import re
-import os
 from pathlib import Path
 
 import aiohttp
@@ -24,37 +23,26 @@ class ZSPMSPlugin(Star):
         self.voices_dir = self.data_dir / "voices"
         self.voices_dir.mkdir(parents=True, exist_ok=True)
 
-        # voices.json 路径 - 使用多种方法确保路径正确
-        try:
-            # 方法1：尝试从 __file__ 获取
-            if hasattr(__file__, '__str__'):
-                plugin_dir = Path(str(__file__)).parent.resolve()
-            else:
-                plugin_dir = Path(__file__).parent.resolve()
-        except:
-            # 方法2：使用 context 或当前工作目录
+        # 直接从 StarTools 获取插件根目录
+        # AstrBot 的插件根目录就是 data/plugins/插件名称/
+        plugin_root = self.data_dir.parent.parent / "plugins" / "astrbot_plugin_zspms_voice"
+        voices_path = plugin_root / "voices.json"
+
+        logger.info(f"[战双语音] 数据目录: {self.data_dir}")
+        logger.info(f"[战双语音] 插件根目录: {plugin_root}")
+        logger.info(f"[战双语音] voices.json路径: {voices_path}")
+
+        self.voice_list = []
+
+        if voices_path.exists():
             try:
-                plugin_dir = Path(os.path.dirname(os.path.abspath(__file__)))
-            except:
-                # 方法3：使用数据目录的父目录
-                plugin_dir = self.data_dir.parent / "astrbot_plugin_zspms_voice"
-
-        voices_path = plugin_dir / "voices.json"
-
-        logger.info(f"插件目录: {plugin_dir}")
-        logger.info(f"voices.json 路径: {voices_path}")
-
-        if not voices_path.exists():
-            logger.error(f"未找到 voices.json！应该在: {voices_path}")
-            self.voice_list = []
-        else:
-            try:
-                with open(str(voices_path), "r", encoding="utf-8") as f:
+                with open(voices_path, "r", encoding="utf-8") as f:
                     self.voice_list = json.load(f)
-                logger.info(f"✅ 加载了 {len(self.voice_list)} 个角色语音列表，准备开冲！")
+                logger.info(f"[战双语音] ✅ 加载了 {len(self.voice_list)} 个角色语音列表")
             except Exception as e:
-                logger.exception("读取 voices.json 失败: %s", e)
-                self.voice_list = []
+                logger.error(f"[战双语音] ❌ 读取 voices.json 失败: {e}")
+        else:
+            logger.error(f"[战双语音] ❌ 未找到 voices.json，路径: {voices_path}")
 
     async def download_and_send(self, event, file_name, character, title):
         # 处理非法文件名字符
@@ -67,17 +55,19 @@ class ZSPMSPlugin(Star):
         if not save_path.exists():
             url = f"https://wiki.biligame.com/zspms/Special:Redirect/file/{file_name.replace(' ', '%20')}"
             yield event.plain_result(f"正在为你下载 {character} 的「{title}」...")
-            async with aiohttp.ClientSession() as s:
+
+            async with aiohttp.ClientSession() as session:
                 try:
-                    async with s.get(url, timeout=30) as r:
-                        if r.status == 200:
-                            save_path.write_bytes(await r.read())
-                            logger.info(f"下载成功: {save_path}")
+                    async with session.get(url, timeout=aiohttp.ClientTimeout(total=30)) as response:
+                        if response.status == 200:
+                            content = await response.read()
+                            save_path.write_bytes(content)
+                            logger.info(f"[战双语音] 下载成功: {save_path}")
                         else:
-                            yield event.plain_result(f"下载失败了(HTTP {r.status})，下次再试吧~")
+                            yield event.plain_result(f"下载失败(HTTP {response.status})，下次再试吧~")
                             return
                 except Exception as e:
-                    logger.error(f"下载异常: {e}")
+                    logger.error(f"[战双语音] 下载异常: {e}")
                     yield event.plain_result("下载出错了，稍后再试哦~")
                     return
 
@@ -98,7 +88,6 @@ class ZSPMSPlugin(Star):
             return
 
         file_name = random.choice(char["voices"])
-        # 文件名最后部分去掉 .mp3 并去首尾空格
         title = file_name.split(" ", 2)[-1].replace(".mp3", "").strip()
 
         async for result in self.download_and_send(event, file_name, character, title):
