@@ -54,9 +54,9 @@ class ZSPMSPlugin(Star):
         yield event.plain_result(f"来！{character} 的「{title}」~")
         yield event.chain_result([Record.fromFileSystem(str(save_path))])
 
-    @filter.command("zspms")
+    @filter.command("zspms", alias={"战双帕弥什随机语音"})
     async def random_play(self, event: AstrMessageEvent):
-        # 修复这里！原来写反了！
+
         if not self.voice_list:
             yield event.plain_result("voices.json 没找到！请检查插件目录")
             return
