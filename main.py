@@ -4,6 +4,7 @@
 import json
 import random
 import re
+import os
 from pathlib import Path
 
 import aiohttp
@@ -23,21 +24,34 @@ class ZSPMSPlugin(Star):
         self.voices_dir = self.data_dir / "voices"
         self.voices_dir.mkdir(parents=True, exist_ok=True)
 
-        # voices.json 路径 - 修复：直接从 __file__ 构建 Path 对象
-        plugin_dir = Path(__file__).parent.resolve()
+        # voices.json 路径 - 使用多种方法确保路径正确
+        try:
+            # 方法1：尝试从 __file__ 获取
+            if hasattr(__file__, '__str__'):
+                plugin_dir = Path(str(__file__)).parent.resolve()
+            else:
+                plugin_dir = Path(__file__).parent.resolve()
+        except:
+            # 方法2：使用 context 或当前工作目录
+            try:
+                plugin_dir = Path(os.path.dirname(os.path.abspath(__file__)))
+            except:
+                # 方法3：使用数据目录的父目录
+                plugin_dir = self.data_dir.parent / "astrbot_plugin_zspms_voice"
+
         voices_path = plugin_dir / "voices.json"
 
+        logger.info(f"插件目录: {plugin_dir}")
         logger.info(f"voices.json 路径: {voices_path}")
-        logger.info(f"路径类型: {type(voices_path)}")
 
         if not voices_path.exists():
-            logger.error("未找到 voices.json！请放在插件目录下")
+            logger.error(f"未找到 voices.json！应该在: {voices_path}")
             self.voice_list = []
         else:
             try:
-                with voices_path.open("r", encoding="utf-8") as f:
+                with open(str(voices_path), "r", encoding="utf-8") as f:
                     self.voice_list = json.load(f)
-                logger.info(f"加载了 {len(self.voice_list)} 个角色语音列表，准备开冲！")
+                logger.info(f"✅ 加载了 {len(self.voice_list)} 个角色语音列表，准备开冲！")
             except Exception as e:
                 logger.exception("读取 voices.json 失败: %s", e)
                 self.voice_list = []
@@ -58,8 +72,9 @@ class ZSPMSPlugin(Star):
                     async with s.get(url, timeout=30) as r:
                         if r.status == 200:
                             save_path.write_bytes(await r.read())
+                            logger.info(f"下载成功: {save_path}")
                         else:
-                            yield event.plain_result("下载失败了，下次再试吧~")
+                            yield event.plain_result(f"下载失败了(HTTP {r.status})，下次再试吧~")
                             return
                 except Exception as e:
                     logger.error(f"下载异常: {e}")
