@@ -1,5 +1,5 @@
-# 文件名: __init__.py
-# 战双帕弥什 · 极简随机语音插件
+# 文件名: main.py
+# 战双帕弥什随机语音插件
 
 import json
 import random
@@ -54,7 +54,7 @@ class ZSPMSPlugin(Star):
         yield event.plain_result(f"来！{character} 的「{title}」~")
         yield event.chain_result([Record.fromFileSystem(str(save_path))])
 
-    @filter.command("zspms", alias={"战双帕弥什随机语音"})
+    @filter.command("zspms", alias=["战双帕弥什随机语音"])
     async def random_play(self, event: AstrMessageEvent):
 
         if not self.voice_list:
