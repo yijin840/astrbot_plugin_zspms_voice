@@ -23,13 +23,12 @@ class ZSPMSPlugin(Star):
         self.voices_dir = self.data_dir / "voices"
         self.voices_dir.mkdir(parents=True, exist_ok=True)
 
-        # voices.json 路径（仅局部变量，防止被框架覆盖）
+        # voices.json 路径 - 修复：直接从 __file__ 构建 Path 对象
         plugin_dir = Path(__file__).parent.resolve()
         voices_path = plugin_dir / "voices.json"
-        voices_path = Path(voices_path)  # 强制 Path
 
-        print("json_path:", voices_path)
-        print("json_path type:", type(voices_path))
+        logger.info(f"voices.json 路径: {voices_path}")
+        logger.info(f"路径类型: {type(voices_path)}")
 
         if not voices_path.exists():
             logger.error("未找到 voices.json！请放在插件目录下")
@@ -87,4 +86,5 @@ class ZSPMSPlugin(Star):
         # 文件名最后部分去掉 .mp3 并去首尾空格
         title = file_name.split(" ", 2)[-1].replace(".mp3", "").strip()
 
-        await self.download_and_send(event, file_name, character, title)
+        async for result in self.download_and_send(event, file_name, character, title):
+            yield result
