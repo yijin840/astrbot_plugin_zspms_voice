@@ -115,12 +115,14 @@ class ZSPMSPlugin(Star):
         else:
             filename = f"文件:{character} {lang_text} {title}.mp3"
 
-        characters = character.split("·")
-        if len(characters) > 1:
-            character = "·".join(characters[1])
-        elif characters:
-            character = characters[0]
-        url = f"https://wiki.biligame.com/zspms/Special:Redirect/file/{filename.replace(' ', '%20')}"
+
+        prefix, name = character.split(":", 1)
+        # 只处理第一个“·”左右的内容
+        left, right = name.split("·", 1)
+        # 拼回结果
+        path = f"{prefix}:{right.strip()}"
+
+        url = f"https://wiki.biligame.com/zspms/Special:Redirect/file/{path.replace(' ', '%20')}"
 
         save_dir = self.voices_dir / character / lang
         save_dir.mkdir(parents=True, exist_ok=True)
