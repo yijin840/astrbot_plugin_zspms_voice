@@ -23,7 +23,10 @@ class ZSPMSPlugin(Star):
 
         plugin_dir = Path(__file__).parent.resolve()
         json_path = plugin_dir / "voices.json"
+        json_path = Path(json_path)
 
+        print("json_path:", json_path)
+        print("json_path type:", type(json_path))
         print(json_path)
         print(type(json_path))
         if not json_path.exists():
