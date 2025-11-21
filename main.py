@@ -24,6 +24,8 @@ class ZSPMSPlugin(Star):
         plugin_dir = Path(__file__).parent.resolve()
         json_path = plugin_dir / "voices.json"
 
+        print(json_path)
+        print(type(json_path))
         if not json_path.exists():
             logger.error("未找到 voices.json！请放在插件目录下")
             self.voice_list = []
