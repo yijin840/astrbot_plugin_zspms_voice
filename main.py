@@ -55,7 +55,7 @@ class ZSPMSPlugin(Star):
         super().__init__(context)
         logger.info("战双帕弥什语音插件正在初始化...")
 
-        self.data_dir = StarTools.get_data_dir("astrbot_plugin_zspms_voice")
+        self.data_dir = StarTools.get_data_dir("zspms_data")
         self.voices_dir = self.data_dir / "voices"
         self.assets_dir = self.data_dir / "assets"
         self.plugin_dir = Path(__file__).parent.resolve()
