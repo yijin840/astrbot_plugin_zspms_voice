@@ -115,7 +115,6 @@ class ZSPMSPlugin(Star):
         else:
             filename = f"文件:{character} {lang_text} {title}.mp3"
 
-
         prefix, name = filename.split(":", 1)
         # 只处理第一个“·”左右的内容
         left, right = name.split("·", 1)
@@ -203,10 +202,10 @@ class ZSPMSPlugin(Star):
             character = random.choice(list(self.voice_index.keys()))
 
         lang = "cn"
-        # if language and language.lower() in self.LANG_MAP:
-        #     lang = self.LANG_MAP[language.lower()]
-        # else:
-        #     lang = self.get_best_lang(character)
+        if language and language.lower() in self.LANG_MAP:
+            lang = self.LANG_MAP[language.lower()]
+        else:
+            lang = self.get_best_lang(character)
 
         if lang == "nodownload":
             if not self.auto_download:
