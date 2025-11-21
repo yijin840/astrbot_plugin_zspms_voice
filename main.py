@@ -1,4 +1,4 @@
-# 文件名: __init__.py  (或 main.py 都行)
+# 文件名: __init__.py
 # 战双帕弥什 · 极简随机语音插件
 
 import json
@@ -23,13 +23,13 @@ class ZSPMSPlugin(Star):
 
         plugin_dir = Path(__file__).parent.resolve()
         json_path = plugin_dir / "voices.json"
-        print(json_path)
+
         if not json_path.exists():
             logger.error("未找到 voices.json！请放在插件目录下")
             self.voice_list = []
         else:
             self.voice_list = json.load(open(json_path, "r", encoding="utf-8"))
-            logger.info(f"加载 {len(self.voice_list)} 个角色语音列表，准备开冲！")
+            logger.info(f"加载了 {len(self.voice_list)} 个角色语音列表，准备开冲！")
 
     async def download_and_send(self, event, file_name, character, title):
         save_path = self.voices_dir / character / f"{title}.mp3"
@@ -46,7 +46,8 @@ class ZSPMSPlugin(Star):
                         else:
                             yield event.plain_result("下载失败了，下次再试吧~")
                             return
-                except:
+                except Exception as e:
+                    logger.error(f"下载异常: {e}")
                     yield event.plain_result("下载出错了，稍后再试哦~")
                     return
 
@@ -55,7 +56,8 @@ class ZSPMSPlugin(Star):
 
     @filter.command("zspms")
     async def random_play(self, event: AstrMessageEvent):
-        if not self.voice_list == []:
+        # 修复这里！原来写反了！
+        if not self.voice_list:
             yield event.plain_result("voices.json 没找到！请检查插件目录")
             return
 
@@ -66,6 +68,6 @@ class ZSPMSPlugin(Star):
             return
 
         file_name = random.choice(char["voices"])
-        title = file_name.split(" ", 2)[-1].replace(".mp3", "")  # 提取标题
+        title = file_name.split(" ", 2)[-1].replace(".mp3", "")
 
         await self.download_and_send(event, file_name, character, title)
