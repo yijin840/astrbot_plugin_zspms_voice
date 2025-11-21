@@ -18,34 +18,34 @@ class ZSPMSPlugin(Star):
     def __init__(self, context, config):
         super().__init__(context)
 
-        # 插件数据目录
-        self.data_dir = StarTools.get_data_dir("astrbot_plugin_zspms_voice")
+        logger.info("[战双语音] 开始初始化...")
+
+        data_dir_raw = StarTools.get_data_dir("astrbot_plugin_zspms_voice")
+        logger.info(f"[战双语音] 原始数据目录类型: {type(data_dir_raw)}, 值: {data_dir_raw}")
+
+        self.data_dir = Path(str(data_dir_raw))
         self.voices_dir = self.data_dir / "voices"
         self.voices_dir.mkdir(parents=True, exist_ok=True)
 
-        # 直接从 StarTools 获取插件根目录
-        # AstrBot 的插件根目录就是 data/plugins/插件名称/
         plugin_root = self.data_dir.parent.parent / "plugins" / "astrbot_plugin_zspms_voice"
-        voices_path = plugin_root / "voices.json"
-
-        logger.info(f"[战双语音] 数据目录: {self.data_dir}")
         logger.info(f"[战双语音] 插件根目录: {plugin_root}")
-        logger.info(f"[战双语音] voices.json路径: {voices_path}")
+
+        voices_json_path = plugin_root / "voices.json"
+        logger.info(f"[战双语音] voices.json路径: {voices_json_path}")
 
         self.voice_list = []
 
-        if voices_path.exists():
-            try:
-                with open(voices_path, "r", encoding="utf-8") as f:
+        try:
+            if voices_json_path.exists():
+                with open(str(voices_json_path), "r", encoding="utf-8") as f:
                     self.voice_list = json.load(f)
-                logger.info(f"[战双语音] ✅ 加载了 {len(self.voice_list)} 个角色语音列表")
-            except Exception as e:
-                logger.error(f"[战双语音] ❌ 读取 voices.json 失败: {e}")
-        else:
-            logger.error(f"[战双语音] ❌ 未找到 voices.json，路径: {voices_path}")
+                logger.info(f"[战双语音] 成功加载 {len(self.voice_list)} 个角色")
+            else:
+                logger.error(f"[战双语音] 文件不存在: {voices_json_path}")
+        except Exception as e:
+            logger.error(f"[战双语音] 读取失败: {e}", exc_info=True)
 
     async def download_and_send(self, event, file_name, character, title):
-        # 处理非法文件名字符
         safe_character = re.sub(r'[\\/:*?"<>|]', '_', character)
         safe_title = re.sub(r'[\\/:*?"<>|]', '_', title)
 
@@ -53,7 +53,8 @@ class ZSPMSPlugin(Star):
         save_path.parent.mkdir(parents=True, exist_ok=True)
 
         if not save_path.exists():
-            url = f"https://wiki.biligame.com/zspms/Special:Redirect/file/{file_name.replace(' ', '%20')}"
+            file_name_encoded = file_name.replace(' ', '%20')
+            url = f"https://wiki.biligame.com/zspms/Special:Redirect/file/{file_name_encoded}"
             yield event.plain_result(f"正在为你下载 {character} 的「{title}」...")
 
             async with aiohttp.ClientSession() as session:
