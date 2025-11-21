@@ -1,23 +1,17 @@
 # 文件名: __init__.py
 # 放在文件夹 astrbot_plugin_zspms_voice/ 下即可直接加载
 
-import os
 import json
-import asyncio
 import random
-import re
 from pathlib import Path
 from typing import List, Optional, Dict, Tuple
 
 import aiohttp
-from bs4 import BeautifulSoup
-from PIL import Image as PILImage, ImageDraw, ImageFont
-
+from astrbot.api import logger
 from astrbot.api.all import *
 from astrbot.api.event import filter, AstrMessageEvent
-from astrbot.core.config.astrbot_config import AstrBotConfig
 from astrbot.api.star import StarTools
-from astrbot.api import logger
+from astrbot.core.config.astrbot_config import AstrBotConfig
 
 
 @register("astrbot_plugin_zspms_voice", "yijin840", "战双帕弥什全构造体语音插件（中日英粤+涂装）", "1.0.0")
@@ -85,7 +79,8 @@ class ZSPMSPlugin(Star):
         schema = {
             "auto_download": {"description": "未找到语音时自动下载", "type": "bool", "default": True},
             "auto_download_coating": {"description": "自动下载涂装语音", "type": "bool", "default": True},
-            "default_language_rank": {"type": "string", "description": "语言优先级 1中文 2日语 3英语 4粤语", "default": "1234"},
+            "default_language_rank": {"type": "string", "description": "语言优先级 1中文 2日语 3英语 4粤语",
+                                      "default": "1234"},
             "auto_download_language": {"type": "string", "description": "自动下载的语言（填数字组合）", "default": "12"},
         }
         schema_path = self.data_dir / "_conf_schema.json"
@@ -113,13 +108,14 @@ class ZSPMSPlugin(Star):
         logger.info(f"[战双语音] 扫描完成，发现 {len(self.voice_index)} 个构造体")
 
     async def download_single_voice(self, character: str, title: str, lang: str) -> bool:
-        # 修复：战双wiki真实文件名规则（实测100%成功）
-        candidates = [
-            f"文件:{character}{title}语音.mp3",           # 正确格式1：露娜·银冕戳一下语音.mp3
-            f"文件:{character} - {title}.mp3",            # 正确格式2
-            f"文件:{character}_{title}.mp3",
-            f"文件:{character} {title}.mp3",
-        ]
+        # 正确的文件名格式：文件:角色名 [语言] 标题.mp3
+        lang_text = {"cn": "中", "jp": "日", "en": "英", "yue": "粤"}[lang]
+        if title == "涂装专属语音":
+            filename = f"文件:{character} 涂装语音.mp3"  # 涂装固定这样
+        else:
+            filename = f"文件:{character} {lang_text} {title}.mp3"
+
+        url = f"https://wiki.biligame.com/zspms/Special:Redirect/file/{filename.replace(' ', '%20')}"
 
         save_dir = self.voices_dir / character / lang
         save_dir.mkdir(parents=True, exist_ok=True)
@@ -129,23 +125,21 @@ class ZSPMSPlugin(Star):
             logger.info(f"[战双语音] 已存在: {save_path}")
             return True
 
-        async with aiohttp.ClientSession() as session:
-            for filename in candidates:
-                url = f"https://wiki.biligame.com/zspms/Special:Redirect/file/{filename.replace(' ', '%20')}"
-                logger.info(f"[战双语音] 正在尝试下载 -> {url}")
-                try:
-                    async with session.get(url, headers=self.DEFAULT_HEADERS, timeout=30) as resp:
-                        if resp.status == 200:
-                            data = await resp.read()
-                            save_path.write_bytes(data)
-                            logger.info(f"[战双语音] 下载成功！保存到: {save_path}")
-                            return True
-                        else:
-                            logger.info(f"[战双语音] 下载失败 (状态码 {resp.status}): {filename}")
-                except Exception as e:
-                    logger.info(f"[战双语音] 请求异常: {e}")
-                    continue
-        logger.warning(f"[战双语音] 全部尝试失败: {character} - {title} ({lang})")
+        async with aiohttp.ClientSession(headers=self.DEFAULT_HEADERS) as session:
+            logger.info(f"[战双语音] 正在下载: {url}")
+            try:
+                async with session.get(url, timeout=30) as resp:
+                    if resp.status == 200:
+                        data = await resp.read()
+                        save_path.write_bytes(data)
+                        logger.info(f"[战双语音] 下载成功！保存到: {save_path}")
+                        return True
+                    else:
+                        logger.info(f"[战双语音] 下载失败 (状态码 {resp.status})")
+            except Exception as e:
+                logger.info(f"[战双语音] 请求异常: {e}")
+
+        logger.warning(f"[战双语音] 下载失败: {character} - {title} ({lang})")
         return False
 
     async def fetch_character_voices(self, character: str) -> Tuple[bool, str]:
@@ -153,7 +147,7 @@ class ZSPMSPlugin(Star):
         success_count = 0
         for i in self.auto_download_language:
             try:
-                lang = self.language_list[int(i)-1]
+                lang = self.language_list[int(i) - 1]
             except:
                 continue
             logger.info(f"[战双语音] 下载 {character} 的 {self.lang_name[lang]} 语音...")
