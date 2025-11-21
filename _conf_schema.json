@@ -1,0 +1,26 @@
+{
+  "auto_download": {
+    "description": "未找到语音时是否自动下载该构造体的全部语音",
+    "type": "bool",
+    "hint": "true / false",
+    "default": true
+  },
+  "auto_download_coating": {
+    "description": "是否自动下载涂装专属语音（最后一项“涂装专属语音”）",
+    "type": "bool",
+    "hint": "true / false",
+    "default": true
+  },
+  "default_language_rank": {
+    "type": "string",
+    "description": "播放时语言优先级顺序（1最优先）\n1=中文  2=日语  3=英语  4=粤语",
+    "hint": "输入数字组合，例如 1234（默认中>日>英>粤）或 213（优先日语）",
+    "default": "1234"
+  },
+  "auto_download_language": {
+    "type": "string",
+    "description": "使用 /zspms_fetch 时自动下载哪些语言\n1=中文  2=日语  3=英语  4=粤语",
+    "hint": "输入数字组合，例如 12（默认只下中日）或 1234（全都要）",
+    "default": "12"
+  }
+}
