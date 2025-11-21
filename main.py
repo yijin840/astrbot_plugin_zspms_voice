@@ -115,6 +115,11 @@ class ZSPMSPlugin(Star):
         else:
             filename = f"文件:{character} {lang_text} {title}.mp3"
 
+        characters = character.split("·")
+        if len(characters) > 1:
+            character = "·".join(characters[1])
+        elif characters:
+            character = characters[0]
         url = f"https://wiki.biligame.com/zspms/Special:Redirect/file/{filename.replace(' ', '%20')}"
 
         save_dir = self.voices_dir / character / lang
