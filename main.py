@@ -19,19 +19,8 @@ from astrbot.core.config.astrbot_config import AstrBotConfig
 from astrbot.api.star import StarTools
 from astrbot.api import logger
 
-@register(
-    name="astrbot_plugin_zspms_voice",
-    desc="战双帕弥什全角色语音插件（中/日/英/粤 + 涂装语音）",
-    help="""
-/zspms [角色名] [语音名] [语言]   # 播放语音，语言：cn(中文) jp(日语) en(英语) yue(粤语)，不填则按优先级自动选
-/zspms [角色名] 涂装 [语音名] [语言]  # 播放该角色的涂装专属语音
-/zspms_list                     # 查看已缓存的构造体与语言
-/zspms_fetch [角色名]           # 下载指定构造体的全部语音（会自动下载配置里允许的语言）
-""",
-    version="1.0.0",
-    author="yijin840",
-    repo="https://github.com/yijin840/astrbot_plugin_zspms_voice"
-)
+
+@register("astrbot_plugin_zspms_voice", "yijin840", "战双帕弥什全构造体语音插件（中日英粤+涂装）", "1.0.0")
 class ZSPMSPlugin(Star):
     # ==================== 配置 ====================
     DEFAULT_HEADERS = {
@@ -74,7 +63,7 @@ class ZSPMSPlugin(Star):
         for d in [self.data_dir, self.voices_dir, self.assets_dir]:
             d.mkdir(parents=True, exist_ok=True)
 
-        self.voice_index: Dict[str, List[str]] = {}   # {角色名: [cn, jp, ...]}
+        self.voice_index: Dict[str, List[str]] = {}  # {角色名: [cn, jp, ...]}
         self._load_config(config)
         self.scan_voice_files()
 
@@ -94,7 +83,8 @@ class ZSPMSPlugin(Star):
         schema = {
             "auto_download": {"description": "未找到语音时自动下载", "type": "bool", "default": True},
             "auto_download_coating": {"description": "自动下载涂装语音", "type": "bool", "default": True},
-            "default_language_rank": {"type": "string", "description": "语言优先级 1中文 2日语 3英语 4粤语", "default": "1234"},
+            "default_language_rank": {"type": "string", "description": "语言优先级 1中文 2日语 3英语 4粤语",
+                                      "default": "1234"},
             "auto_download_language": {"type": "string", "description": "自动下载的语言（填数字）", "default": "12"},
         }
         schema_path = self.data_dir / "_conf_schema.json"
@@ -150,7 +140,7 @@ class ZSPMSPlugin(Star):
         async with aiohttp.ClientSession() as session:
             # 先下载普通语音
             for lang_code in self.language_list:
-                if lang_code not in [self.language_list[int(i)-1] for i in self.auto_download_language]:
+                if lang_code not in [self.language_list[int(i) - 1] for i in self.auto_download_language]:
                     continue
                 for title in self.VOICE_DESCRIPTIONS[:-1]:  # 除了最后一项涂装专属
                     if await self.download_single_voice(character, title, lang_code):
@@ -191,7 +181,8 @@ class ZSPMSPlugin(Star):
 
     # ==================== 命令处理 ====================
     @filter.command("zspms", alias=["战双语音", "zspms语音"])
-    async def zspms_handler(self, event: AstrMessageEvent, character: str = None, extra: str = None, voice_name: str = None, language: str = None):
+    async def zspms_handler(self, event: AstrMessageEvent, character: str = None, extra: str = None,
+                            voice_name: str = None, language: str = None):
         """主命令：播放语音"""
         self.scan_voice_files()
 
