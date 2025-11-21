@@ -41,7 +41,7 @@ class ZSPMSPlugin(Star):
         "涂装专属语音",
     ]
 
-    LANG_MAP = {"中": "cn", "cn": "cn", "日": "jp", "jp": "jp", "英": "en", "en": "en", "粤": "yue", "yue": "yue"}
+    LANG_MAP = {"中": "cn"}
 
     def __init__(self, context: Context, config: AstrBotConfig):
         super().__init__(context)
@@ -203,10 +203,10 @@ class ZSPMSPlugin(Star):
             character = random.choice(list(self.voice_index.keys()))
 
         lang = "cn"
-        if language and language.lower() in self.LANG_MAP:
-            lang = self.LANG_MAP[language.lower()]
-        else:
-            lang = self.get_best_lang(character)
+        # if language and language.lower() in self.LANG_MAP:
+        #     lang = self.LANG_MAP[language.lower()]
+        # else:
+        #     lang = self.get_best_lang(character)
 
         if lang == "nodownload":
             if not self.auto_download:
