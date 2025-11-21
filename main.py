@@ -177,8 +177,15 @@ class ZSPMSPlugin(Star):
             logger.warning(f"[战双语音] 语音列表为空")
             yield event.plain_result("voices.json 没找到或加载失败！请检查插件目录")
             return
-
-        char = random.choice(self.voice_list)
+        available_chars = [
+            char for char in self.voice_list
+            if char.get("voices") and isinstance(char["voices"], list) and len(char["voices"]) > 0
+        ]
+        if not available_chars:
+            logger.warning(f"[战双语音] 筛选后，没有可用的有语音的角色列表")
+            yield event.plain_result("voices.json 中所有角色的语音列表都为空，无法播放！")
+            return
+        char = random.choice(available_chars)
         character = char.get("title", "未知角色")
         logger.info(f"[战双语音] 随机选中角色: {character}")
 
